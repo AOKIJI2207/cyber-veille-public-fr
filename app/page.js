@@ -1,27 +1,39 @@
 import Parser from "rss-parser";
 import sources from "../sources.json";
+import ArticlesFeedClient from "./components/ArticlesFeedClient";
+import { classifyPublicSector } from "../lib/publicSector";
 
 export const dynamic = "force-dynamic";
 
 const parser = new Parser({ timeout: 15000 });
 
 function toISODate(item) {
-  const raw = item.isoDate || item.pubDate;
+  const raw = item.isoDate || item.pubDate || item.published || item.updated;
   const d = raw ? new Date(raw) : new Date();
   return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
+function extractDescription(item) {
+  return item.contentSnippet || item.summary || item.content || "";
 }
 
 export default async function Page() {
   const results = await Promise.allSettled(
     sources.map(async (s) => {
       const feed = await parser.parseURL(s.url);
-      return (feed.items || []).slice(0, 20).map((it) => ({
-        source: s.name,
-        subcategory: s.subcategory,
-        title: it.title || "",
-        link: it.link || "",
-        date: toISODate(it)
-      })).filter(x => x.title && x.link);
+      return (feed.items || []).slice(0, 20).map((it) => {
+        const description = extractDescription(it);
+
+        return {
+          source: s.name,
+          subcategory: s.subcategory,
+          title: it.title || "",
+          link: it.link || "",
+          date: toISODate(it),
+          description,
+          publicSector: classifyPublicSector(it.title || "", description)
+        };
+      }).filter((x) => x.title && x.link);
     })
   );
 
@@ -42,24 +54,7 @@ export default async function Page() {
     <main style={{ fontFamily: "system-ui, Arial", margin: 24, maxWidth: 1000 }}>
       <h1>Veille cyber – Service public français</h1>
       <p>Articles récupérés : <strong>{deduped.length}</strong></p>
-
-      <div style={{ display: "grid", gap: 12 }}>
-        {deduped.slice(0, 100).map((it) => (
-          <article key={it.link} style={{ background: "white", padding: 14, borderRadius: 12 }}>
-            <div style={{ fontSize: 12, color: "#555" }}>
-              {it.subcategory} · {it.date}
-            </div>
-            <h2 style={{ fontSize: 16 }}>
-              <a href={it.link} target="_blank" rel="noreferrer">
-                {it.title}
-              </a>
-            </h2>
-            <div style={{ fontSize: 13 }}>
-              Source : <strong>{it.source}</strong>
-            </div>
-          </article>
-        ))}
-      </div>
+      <ArticlesFeedClient articles={deduped} />
     </main>
   );
 }
