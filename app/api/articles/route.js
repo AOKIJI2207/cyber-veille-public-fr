@@ -1,10 +1,10 @@
-import { fetchSectorArticles } from "../../../lib/articles";
+import articlesData from "../../../data/articles.json";
 
 export async function GET() {
-  const items = await fetchSectorArticles(30);
+  const items = Array.isArray(articlesData.items) ? articlesData.items : [];
 
   return Response.json({
-    generatedAt: new Date().toISOString(),
+    generatedAt: articlesData.generatedAt || new Date().toISOString(),
     count: items.length,
     items: items.slice(0, 250)
   });
