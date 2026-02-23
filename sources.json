@@ -1,0 +1,8 @@
+[
+  { "name": "CERT-FR - Avis", "url": "https://www.cert.ssi.gouv.fr/avis/feed/", "subcategory": "Vulnérabilités / correctifs" },
+  { "name": "CERT-FR - Alertes", "url": "https://www.cert.ssi.gouv.fr/alerte/feed/", "subcategory": "Alertes critiques" },
+  { "name": "CERT-FR - Bulletins", "url": "https://www.cert.ssi.gouv.fr/actualite/feed/", "subcategory": "Bulletins / synthèses" },
+  { "name": "CERT-FR - CTI", "url": "https://www.cert.ssi.gouv.fr/cti/feed/", "subcategory": "Menaces & incidents / CTI" },
+  { "name": "ANSSI - Actualités", "url": "https://cyber.gouv.fr/actualites/rss/", "subcategory": "Actualités ANSSI" },
+  { "name": "Cybermalveillance - Actualités", "url": "https://www.cybermalveillance.gouv.fr/feed/atom-flux-actualites", "subcategory": "Tendances / sensibilisation" }
+]
