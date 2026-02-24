@@ -5,12 +5,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "generate": "node generate.js"
+    "generate": "node scripts/ingest.js",
+    "ingest": "node scripts/ingest.js"
   },
   "dependencies": {
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "rss-parser": "3.13.0"
+    "rss-parser": "3.13.0",
+    "pg": "8.12.0"
   }
 }

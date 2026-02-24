@@ -1,140 +1,75 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
-const sectorBadgeColors = {
-  "Collectivités territoriales": "#e0f2fe",
-  "Santé publique": "#dcfce7",
-  "Éducation & recherche": "#fef9c3",
-  "Intérieur & Justice": "#fee2e2",
-  "Administration centrale & ministères": "#ede9fe",
-  "Opérateurs publics & infrastructures critiques": "#ffe4e6",
-  "Public (transverse)": "#e5e7eb"
-};
-
-const threatBadgeColors = {
-  Ransomware: "#fecaca",
-  "Exploitation de vulnérabilité": "#fde68a",
-  "Phishing / ingénierie sociale": "#ddd6fe",
-  DDoS: "#bae6fd",
-  "Espionnage / APT": "#bbf7d0",
-  "Supply chain": "#fed7aa",
-  Autre: "#e2e8f0"
-};
-
 export default function ArticlesFeedClient({ articles, subsectors = [], threatTypes = [] }) {
-  const [selectedSubsector, setSelectedSubsector] = useState("Tous");
-  const [selectedThreatType, setSelectedThreatType] = useState("Tous");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [source, setSource] = useState("Tous");
+  const [entryType, setEntryType] = useState("Tous");
+  const [subsector, setSubsector] = useState("Tous");
+  const [threat, setThreat] = useState("Tous");
+  const [severity, setSeverity] = useState("Tous");
+  const [query, setQuery] = useState("");
+  const [minRelevance, setMinRelevance] = useState(0);
 
-  const filteredArticles = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+  const sources = useMemo(() => Array.from(new Set(articles.map((a) => a.source))).sort(), [articles]);
+  const types = useMemo(() => Array.from(new Set(articles.map((a) => a.subcategory))).sort(), [articles]);
 
-    return articles.filter((article) => {
-      const sector = article.publicSubsector || article.publicSector || "Public (transverse)";
-      const threatType = article.threatType || "Autre";
-      const matchSector = selectedSubsector === "Tous" || sector === selectedSubsector;
-      const matchThreat = selectedThreatType === "Tous" || threatType === selectedThreatType;
-      const matchSearch = !query || `${article.title} ${article.description || ""} ${article.source}`.toLowerCase().includes(query);
+  const filtered = useMemo(() => {
+    return articles.filter((a) => {
+      if (source !== "Tous" && a.source !== source) return false;
+      if (entryType !== "Tous" && a.subcategory !== entryType) return false;
+      if (subsector !== "Tous" && a.publicSubsector !== subsector) return false;
+      if (threat !== "Tous" && a.threatType !== threat) return false;
+      if (severity !== "Tous" && (a.severity || "none") !== severity) return false;
+      if ((a.relevance_public_sector || 0) < minRelevance) return false;
 
-      return matchSector && matchThreat && matchSearch;
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      return `${a.title} ${a.description || ""} ${a.source}`.toLowerCase().includes(q);
     });
-  }, [articles, searchQuery, selectedSubsector, selectedThreatType]);
+  }, [articles, source, entryType, subsector, threat, severity, query, minRelevance]);
 
   return (
     <>
-      <div style={{ marginBottom: 16, display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <strong>Filtrer par sous-secteur</strong>
-          <select
-            value={selectedSubsector}
-            onChange={(event) => setSelectedSubsector(event.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", background: "white" }}
-          >
-            <option value="Tous">Tous</option>
-            {subsectors.map((sector) => (
-              <option key={sector} value={sector}>{sector}</option>
-            ))}
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          <strong>Filtrer par type d’attaque</strong>
-          <select
-            value={selectedThreatType}
-            onChange={(event) => setSelectedThreatType(event.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", background: "white" }}
-          >
-            <option value="Tous">Tous</option>
-            {threatTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          <strong>Recherche texte</strong>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Titre, description, source..."
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", background: "white" }}
-          />
-        </label>
+      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: 16 }}>
+        <select value={source} onChange={(e) => setSource(e.target.value)}><option>Tous</option>{sources.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={entryType} onChange={(e) => setEntryType(e.target.value)}><option>Tous</option>{types.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={subsector} onChange={(e) => setSubsector(e.target.value)}><option>Tous</option>{subsectors.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={threat} onChange={(e) => setThreat(e.target.value)}><option>Tous</option>{threatTypes.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
+          <option value="Tous">Sévérité: toutes</option>
+          <option value="critique">critique</option>
+          <option value="haute">haute</option>
+          <option value="moyenne">moyenne</option>
+          <option value="faible">faible</option>
+          <option value="none">N/A</option>
+        </select>
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Recherche texte" />
       </div>
 
-      <p style={{ fontSize: 13, color: "#334155", marginBottom: 12 }}>
-        {filteredArticles.length} article(s) correspondant aux filtres.
-      </p>
+      <label style={{ display: "block", marginBottom: 12 }}>
+        Pertinence secteur public min: {minRelevance}
+        <input type="range" min="0" max="1" step="0.1" value={minRelevance} onChange={(e) => setMinRelevance(Number(e.target.value))} style={{ width: "100%" }} />
+      </label>
+
+      <p>{filtered.length} résultat(s)</p>
 
       <div style={{ display: "grid", gap: 12 }}>
-        {filteredArticles.slice(0, 120).map((article) => {
-          const sector = article.publicSubsector || article.publicSector || "Public (transverse)";
-          const threatType = article.threatType || "Autre";
-
-          return (
-            <article key={article.link} style={{ background: "white", padding: 14, borderRadius: 12, border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-                <div style={{ fontSize: 12, color: "#555" }}>
-                  {article.subcategory} · {article.date}
-                </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      padding: "4px 8px",
-                      borderRadius: 999,
-                      background: sectorBadgeColors[sector] || sectorBadgeColors["Public (transverse)"],
-                      border: "1px solid #cbd5e1"
-                    }}
-                  >
-                    {sector}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      padding: "4px 8px",
-                      borderRadius: 999,
-                      background: threatBadgeColors[threatType] || threatBadgeColors.Autre,
-                      border: "1px solid #cbd5e1"
-                    }}
-                  >
-                    {threatType}
-                  </span>
-                </div>
-              </div>
-              <h2 style={{ fontSize: 16, margin: "0 0 8px" }}>
-                <a href={article.link} target="_blank" rel="noreferrer">
-                  {article.title}
-                </a>
-              </h2>
-              <div style={{ fontSize: 13 }}>
-                Source : <strong>{article.source}</strong>
-              </div>
-            </article>
-          );
-        })}
+        {filtered.slice(0, 150).map((a) => (
+          <article key={a.id || a.link} style={{ background: "white", padding: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}>
+            <div style={{ fontSize: 12, color: "#555" }}>{a.source} · {a.subcategory} · {a.date}</div>
+            <h3 style={{ margin: "6px 0" }}><Link href={`/entries/${a.id}`}>{a.title}</Link></h3>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 12 }}>
+              <span style={{ border: "1px solid #cbd5e1", borderRadius: 999, padding: "2px 8px" }}>{a.publicSubsector}</span>
+              <span style={{ border: "1px solid #cbd5e1", borderRadius: 999, padding: "2px 8px" }}>{a.threatType}</span>
+              <span style={{ border: "1px solid #cbd5e1", borderRadius: 999, padding: "2px 8px" }}>Confiance {a.confidenceScore ?? "N/A"}</span>
+              <span style={{ border: "1px solid #cbd5e1", borderRadius: 999, padding: "2px 8px" }}>Sévérité {a.severity || "N/A"}</span>
+            </div>
+            <p style={{ marginTop: 8 }}>{a.description}</p>
+            <a href={a.link} target="_blank" rel="noreferrer">Source originale</a>
+          </article>
+        ))}
       </div>
     </>
   );

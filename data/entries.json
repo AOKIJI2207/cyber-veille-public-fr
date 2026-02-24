@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-02-24T08:54:39.517Z",
+  "metrics": {
+    "ingested_total": 0,
+    "deduped_total": 0,
+    "errors": 7
+  },
+  "entries": [],
+  "logs": [
+    {
+      "source": "certfr-alertes",
+      "status": "error",
+      "error": "",
+      "elapsedMs": 216
+    },
+    {
+      "source": "certfr-avis",
+      "status": "error",
+      "error": "",
+      "elapsedMs": 137
+    },
+    {
+      "source": "certfr-actualite",
+      "status": "error",
+      "error": "",
+      "elapsedMs": 66
+    },
+    {
+      "source": "certfr-ioc",
+      "status": "error",
+      "error": "",
+      "elapsedMs": 143
+    },
+    {
+      "source": "certfr-durcissement",
+      "status": "error",
+      "error": "",
+      "elapsedMs": 34
+    },
+    {
+      "source": "cybermalveillance-actualites",
+      "status": "error",
+      "error": "connect ENETUNREACH 45.60.152.34:443 - Local (0.0.0.0:0)",
+      "elapsedMs": 70
+    },
+    {
+      "source": "viginum-guide-electoral",
+      "status": "error",
+      "error": "fetch failed",
+      "elapsedMs": 4704
+    }
+  ]
+}
