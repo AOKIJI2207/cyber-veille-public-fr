@@ -1,65 +1,41 @@
-import Parser from "rss-parser";
-import sources from "../sources.json";
+import entriesData from "../data/entries.json";
+import ArticlesFeedClient from "./components/ArticlesFeedClient";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
-const parser = new Parser({ timeout: 15000 });
-
-function toISODate(item) {
-  const raw = item.isoDate || item.pubDate;
-  const d = raw ? new Date(raw) : new Date();
-  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+function normalizeUiEntry(entry) {
+  return {
+    id: entry.id,
+    source: entry.source,
+    subcategory: entry.type,
+    title: entry.title,
+    description: entry.summary,
+    link: entry.url,
+    date: entry.published_at,
+    publicSubsector: (entry.entities?.secteurs?.[0] || "Public (transverse)").replaceAll("_", " "),
+    publicSector: (entry.entities?.secteurs?.[0] || "Public (transverse)").replaceAll("_", " "),
+    threatType: entry.tags?.find((t) => t.tagType === "menace")?.tag || "Autre",
+    confidenceScore: entry.confidence_score,
+    severity: entry.severity,
+    tags: entry.tags || [],
+    relevance_public_sector: entry.relevance_public_sector || 0
+  };
 }
 
-export default async function Page() {
-  const results = await Promise.allSettled(
-    sources.map(async (s) => {
-      const feed = await parser.parseURL(s.url);
-      return (feed.items || []).slice(0, 20).map((it) => ({
-        source: s.name,
-        subcategory: s.subcategory,
-        title: it.title || "",
-        link: it.link || "",
-        date: toISODate(it)
-      })).filter(x => x.title && x.link);
-    })
-  );
+export default function FluxPage() {
+  const rawEntries = Array.isArray(entriesData.entries) ? entriesData.entries : [];
+  const articles = rawEntries.map(normalizeUiEntry);
 
-  const all = [];
-  for (const r of results) {
-    if (r.status === "fulfilled") all.push(...r.value);
-  }
-
-  const seen = new Set();
-  const deduped = [];
-  for (const it of all.sort((a, b) => (a.date < b.date ? 1 : -1))) {
-    if (seen.has(it.link)) continue;
-    seen.add(it.link);
-    deduped.push(it);
-  }
+  const subsectors = Array.from(new Set(articles.map((a) => a.publicSubsector))).sort();
+  const threatTypes = Array.from(new Set(articles.map((a) => a.threatType))).sort();
 
   return (
-    <main style={{ fontFamily: "system-ui, Arial", margin: 24, maxWidth: 1000 }}>
-      <h1>Veille cyber – Service public français</h1>
-      <p>Articles récupérés : <strong>{deduped.length}</strong></p>
-
-      <div style={{ display: "grid", gap: 12 }}>
-        {deduped.slice(0, 100).map((it) => (
-          <article key={it.link} style={{ background: "white", padding: 14, borderRadius: 12 }}>
-            <div style={{ fontSize: 12, color: "#555" }}>
-              {it.subcategory} · {it.date}
-            </div>
-            <h2 style={{ fontSize: 16 }}>
-              <a href={it.link} target="_blank" rel="noreferrer">
-                {it.title}
-              </a>
-            </h2>
-            <div style={{ fontSize: 13 }}>
-              Source : <strong>{it.source}</strong>
-            </div>
-          </article>
-        ))}
-      </div>
+    <main style={{ fontFamily: "system-ui, Arial", margin: 24, maxWidth: 1200 }}>
+      <h1>Flux de veille cyber – secteur public FR</h1>
+      <p>
+        Entrées: <strong>{articles.length}</strong> · Généré: {entriesData.generatedAt || "N/A"}
+      </p>
+      <ArticlesFeedClient articles={articles} subsectors={subsectors} threatTypes={threatTypes} />
     </main>
   );
 }
