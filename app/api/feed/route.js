@@ -1,6 +1,7 @@
-import { query } from "../../../lib/ingestion/db.mjs";
+import { dbQuery } from "../../../lib/db";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -17,7 +18,7 @@ export async function GET(request) {
 
   params.push(limit);
 
-  const { rows } = await query(
+  const { rows } = await dbQuery(
     `SELECT
       e.id,
       e.title,

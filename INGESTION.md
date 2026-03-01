@@ -1,23 +1,30 @@
-# Architecture d'ingestion (Node.js + PostgreSQL)
+# Architecture d'ingestion (Vercel serverless + PostgreSQL)
 
 ## Pipeline
-1. `scripts/scheduler.mjs` lance un job toutes les 5 minutes (`node-cron`).
-2. `fetchSources()` récupère les sources actives, limite la concurrence, applique timeout/retry/backoff, robots.txt, ETag/Last-Modified.
-3. `parseAndNormalize()` convertit RSS/Atom/HTML en format unique d'entrée.
-4. `deduplicateAndInsert()` fait un bulk insert avec `ON CONFLICT DO NOTHING`, puis met à jour `updated_at` pour les entrées déjà existantes.
-5. Le front appelle `/api/feed` toutes les 60 secondes (polling) pour afficher rapidement les nouveautés.
+1. Vercel Cron appelle `GET /api/cron` toutes les 5 minutes (`vercel.json`).
+2. La route `app/api/cron/route.js` vérifie `Authorization: Bearer <CRON_SECRET>`.
+3. `runIngestionJob()` orchestre:
+   - `fetchSources()` (concurrence limitée, timeout 10s, retry exponentiel, robots.txt, ETag/Last-Modified)
+   - `parseAndNormalize()`
+   - `deduplicateAndInsert()` (bulk insert + `ON CONFLICT DO NOTHING` + refresh `updated_at`)
+4. Le feed est servi via `GET /api/feed` depuis PostgreSQL.
 
-## Objectifs de latence
-- Ordonnancement : `*/5 * * * *` (max 5 minutes entre deux passages).
-- Exécution cible : < 60 secondes.
-- Affichage : front poll toutes les 60 secondes.
-
-## Cron (exemple système)
-```cron
-*/5 * * * * cd /workspace/cyber-veille-public-fr && /usr/bin/node scripts/scheduler.mjs >> /var/log/cyber-veille-ingestion.log 2>&1
-```
+## Contraintes serverless
+- Aucun process long
+- Aucun scheduler Node local
+- Exécution déclenchée uniquement par Vercel Cron
 
 ## Variables d'environnement
 - `DATABASE_URL=postgres://...`
 - `PG_POOL_SIZE=10`
 - `INGEST_CONCURRENCY=8`
+- `CRON_SECRET=...` (ou `VERCEL_CRON_SECRET`)
+- `NEXT_PUBLIC_SITE_URL=https://votre-domaine`
+
+## Déploiement
+1. Ajouter les variables d'environnement sur Vercel.
+2. Déployer la branche (`vercel.json` active le cron `*/5 * * * *`).
+3. Tester manuellement:
+   ```bash
+   curl -H "Authorization: Bearer $CRON_SECRET" https://<domaine>/api/cron
+   ```
